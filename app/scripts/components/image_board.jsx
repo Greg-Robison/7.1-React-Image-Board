@@ -35,8 +35,7 @@ var ImageBoardContainer = React.createClass({
 
   },
   editImage: function(model, imageData){
-    console.log(model);
-    console.log(imageData);
+    
     model.set(imageData);
     this.setState({imageCollection: this.state.imageCollection});
   },
