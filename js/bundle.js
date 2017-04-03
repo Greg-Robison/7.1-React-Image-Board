@@ -17,34 +17,34 @@ var ImageBoardContainer = React.createClass({displayName: "ImageBoardContainer",
   },
   componentWillMount: function(){
     var newImageCollection = this.state.imageCollection;
-    newImageCollection.add([
-      {id: 1, url: '././images/window.jpg', description: 'Beautiful'},
-      {id: 2, url: '././images/Prague.jpg', description: 'Outstanding'}
-    ]);
-
-    this.setState({imageCollection: newImageCollection});
-
+    newImageCollection.fetch().then(()=> {
+      this.setState({ imageCollection: newImageCollection });
+    });
   },
   handleToggleForm: function(event){
     event.preventDefault();
     this.setState({showForm: !this.state.showForm});
-
   },
   addImage: function(image){
     var images = this.state.imageCollection;
-    images.add(image);
+    images.create(image);
     this.setState({imageCollection: images, showForm: false});
-
+  },
+  removeImage: function(image) {
+    var imageCollection = this.state.imageCollection;
+    imageCollection.remove(image);
+    this.setState({ imageCollection: imageCollection })
   },
   editImage: function(model, imageData){
-    
     model.set(imageData);
+    model.save();
     this.setState({imageCollection: this.state.imageCollection});
   },
   showEditForm: function(imageToEdit){
     this.setState({showForm: true, imageToEdit: imageToEdit});
 
   },
+
   render: function(){
     return (
       React.createElement("div", {className: "container-fluid"}, 
@@ -66,7 +66,8 @@ var ImageBoardContainer = React.createClass({displayName: "ImageBoardContainer",
 
         React.createElement(ImageList, {
           imageCollection: this.state.imageCollection, 
-          showEditForm: this.showEditForm}
+          showEditForm: this.showEditForm, 
+          removeImage: this.removeImage}
         )
       )
     )
@@ -98,6 +99,7 @@ var ImageForm = React.createClass({displayName: "ImageForm",
 
     this.setState({url: '', description: ''});
   },
+
   render: function(){
     return (
       React.createElement("form", {onSubmit: this.handleSubmit, className: "well"}, 
@@ -120,6 +122,16 @@ var ImageList = React.createClass({displayName: "ImageList",
     imageCollection: React.PropTypes.instanceOf(Backbone.Collection).isRequired,
     showEditForm: React.PropTypes.func.isRequired
   },
+  handleDelete(e, image){
+    e.preventDefault();
+    // destroying models on the server
+    image.destroy({success: function(model, response) {
+      console.log('model destroyed', model);
+    }});
+    // removing models from the page by updating state on the smart componnent
+    this.props.removeImage(image);
+},
+
   render: function(){
     var self = this;
     var imageBoardList = this.props.imageCollection.map(function(image){
@@ -141,7 +153,7 @@ var ImageList = React.createClass({displayName: "ImageList",
               }, 
                 "Edit"
               ), 
-              React.createElement("a", {href: "#", className: "delete btn btn-danger", role: "button"}, "Delete")
+              React.createElement("button", {onClick: (e)=>self.handleDelete(e, image), className: "delete btn btn-danger", role: "button"}, "Delete")
             )
           )
         )
@@ -186,11 +198,13 @@ ReactDOM.render(
 var Backbone = require('backbone');
 
 var Image = Backbone.Model.extend({
-
+  idAttribute: '_id',
+  urlRoot: 'https://tiny-lasagna-server.herokuapp.com/collections/greg_images/'
 });
 
 var ImageCollection = Backbone.Collection.extend({
-  model: Image
+  model: Image,
+  url: 'https://tiny-lasagna-server.herokuapp.com/collections/greg_images/'
 });
 
 module.exports = {
